@@ -31,7 +31,6 @@ set -eu
 USERNAME=
 COMPONENT_ID=
 PROJECT_ID=
-BITBUCKET_URL=
 PROXY_HOST=
 QUICKSTARTER=
 ODS_IMAGE_TAG=
@@ -46,7 +45,6 @@ function usage {
    printf "\t--project-id\t\tProject ID of the Bitbucket Project\n"
    printf "\t--component-id\t\tComponent ID of the project, usually is equivalent to bitbucket repo name\n"
    printf "\t-u|--username\t\tUsername of your Bitbucket account\n"
-   printf "\t--bitbucket-url\t\tBitbucket URL\n"
    printf "\t--quickstarter\t\tQuickstarter of interest\n"
    printf "\t--ods-image-tag\t\tODS image tag\n"
    printf "\t--quickstarter-branch\tQuickstarter branch you want to run the tests on\n"
@@ -60,7 +58,6 @@ function usage {
      \n\t--username john_doe@bar.com \ \
      \n\t--project-id foo \ \
      \n\t--component-id bar \ \
-     \n\t--bitbucket-url https://bitbucket.example.com \ \
      \n\t--quickstarter be-java-springboot \ \
      \n\t--ods-image-tag master \ \
      \n\t--quickstarter-branch master \ \
@@ -87,9 +84,6 @@ while [[ "$#" -gt 0 ]]; do
    -u|--username) USERNAME="$2"; shift;;
    -u=*|--username=*) USERNAME="${1#*=}";;
 
-   --bitbucket-url) BITBUCKET_URL="$2"; shift;;
-   --bitbucket-url=*) BITBUCKET_URL="${1#*=}";;
-
    --quickstarter) QUICKSTARTER="$2"; shift;;
    --quickstarter=*) QUICKSTARTER="${1#*=}";;
 
@@ -114,8 +108,6 @@ elif [ -z ${COMPONENT_ID} ]; then
   echo_error "Param --component-id is missing."; usage; exit 1;
 elif [ -z ${USERNAME} ]; then
   echo_error "Param -u|--username is missing."; usage; exit 1;
-elif [ -z ${BITBUCKET_URL} ]; then
-  echo_error "Param --bitbucket-url is missing."; usage; exit 1;
 elif [ -z ${QUICKSTARTER} ]; then
   echo_error "Param --quickstarter is missing."; usage; exit 1;
 elif [ -z ${ODS_IMAGE_TAG} ]; then
@@ -160,10 +152,16 @@ read -s PASSWORD
 token=$(echo "$USERNAME:$PASSWORD" | base64)
 
 #############
+##### Getting Bitbucket Host
+#############
+echo_info "Pulling your bitbucket host information"
+BITBUCKET_HOST=$(oc get dc -o=jsonpath='{.items[?(@.metadata.name=="jenkins")].spec.template.spec.containers[*].env[?(@.name=="BITBUCKET_HOST")].value}')
+
+#############
 ##### Create Repo
 #############
 echo_info "Creating repo $COMPONENT_ID in $PROJECT_ID..."
-curl --fail --location --request POST "$BITBUCKET_URL/rest/api/1.0/projects/$PROJECT_ID/repos" \
+curl --fail --location --request POST "https://$BITBUCKET_HOST/rest/api/1.0/projects/$PROJECT_ID/repos" \
 --header "Authorization: Basic $token" \
 --header "Content-Type: application/json" \
 --data-raw '{
@@ -177,7 +175,7 @@ curl --fail --location --request POST "$BITBUCKET_URL/rest/api/1.0/projects/$PRO
 echo "\n"
 echo_info "Generating webhook for the repo $COMPONENT_ID in $PROJECT_ID..."
 PROXY_URL_WITH_SECRET="https://$PROXY_HOST?trigger_secret=$secret"
-curl --fail --location --request POST "$BITBUCKET_URL/rest/api/1.0/projects/$PROJECT_ID/repos/$PROJECT_ID-$COMPONENT_ID/webhooks" \
+curl --fail --location --request POST "https://$BITBUCKET_HOST/rest/api/1.0/projects/$PROJECT_ID/repos/$PROJECT_ID-$COMPONENT_ID/webhooks" \
 --header "Authorization: Basic $token" \
 --header "Content-Type: application/json" \
 --data-raw '{
@@ -206,7 +204,7 @@ echo_info "Creating the Jenkins pipeline..."
 oc process -f ./qs-pipeline.yml \
   -p PROJECT_ID=$PROJECT_ID \
   -p COMPONENT_ID=$COMPONENT_ID \
-  -p BITBUCKET_URL=$BITBUCKET_URL \
+  -p BITBUCKET_URL="https://$BITBUCKET_HOST" \
   -p PIPELINE_POSTFIX=$pipelinePostfix \
   -p QUICKSTARTER=$QUICKSTARTER \
   -p ODS_IMAGE_TAG=$ODS_IMAGE_TAG \
