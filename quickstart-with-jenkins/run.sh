@@ -44,7 +44,7 @@ function usage {
    printf "\t-h|--help\t\tPrints the usage\n"
    printf "\t--project-id\t\tProject ID of the Bitbucket Project\n"
    printf "\t--component-id\t\tComponent ID of the project, usually is equivalent to bitbucket repo name\n"
-   printf "\t-u|--username\t\tUsername of your Bitbucket account\n"
+   printf "\t--username\t\tUsername of your Bitbucket account\n"
    printf "\t--quickstarter\t\tQuickstarter of interest\n"
    printf "\t--ods-image-tag\t\tODS image tag\n"
    printf "\t--quickstarter-branch\tQuickstarter branch you want to run the tests on\n"
@@ -81,8 +81,8 @@ while [[ "$#" -gt 0 ]]; do
    --component-id) COMPONENT_ID="$2"; shift;;
    --component-id=*) COMPONENT_ID="${1#*=}";;
 
-   -u|--username) USERNAME="$2"; shift;;
-   -u=*|--username=*) USERNAME="${1#*=}";;
+   --username) USERNAME="$2"; shift;;
+   --username=*) USERNAME="${1#*=}";;
 
    --quickstarter) QUICKSTARTER="$2"; shift;;
    --quickstarter=*) QUICKSTARTER="${1#*=}";;
