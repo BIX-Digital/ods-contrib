@@ -32,7 +32,7 @@ USERNAME=
 COMPONENT_ID=
 PROJECT_ID=
 BITBUCKET_URL=
-PROXY_URL=
+PROXY_HOST=
 QUICKSTARTER=
 ODS_IMAGE_TAG=
 QUICKSTARTER_BRANCH=
@@ -47,12 +47,10 @@ function usage {
    printf "\t--component-id\t\tComponent ID of the project, usually is equivalent to bitbucket repo name\n"
    printf "\t-u|--username\t\tUsername of your Bitbucket account\n"
    printf "\t--bitbucket-url\t\tBitbucket URL\n"
-   printf "\t--proxy-url\t\tHost of the webhook proxy\n"
    printf "\t--quickstarter\t\tQuickstarter of interest\n"
    printf "\t--ods-image-tag\t\tODS image tag\n"
    printf "\t--quickstarter-branch\tQuickstarter branch you want to run the tests on\n"
    printf "\t--shared-lib-branch\tBranch of the shared library\n"
-   printf "\t--jenkins-host\t\tURL where your Jenkins instance is hosted\n\n"
    printf "\t--quickstarter-repo\t\t[optional, default: ods-quickstarters] Quickstarter repository name you want to run the tests on\n\n"
    printf "\tNOTE: If you aren't interested in customizing a slave image tag or testing a specific quickstarter or shared library branch,
    \tit is recommended that you use master for all three of them to get the latest stable releases.\n"
@@ -63,12 +61,10 @@ function usage {
      \n\t--project-id foo \ \
      \n\t--component-id bar \ \
      \n\t--bitbucket-url https://bitbucket.example.com \ \
-     \n\t--proxy-url https://webhook-proxy-foo-cd.example.com  \ \
      \n\t--quickstarter be-java-springboot \ \
      \n\t--ods-image-tag master \ \
      \n\t--quickstarter-branch master \ \
      \n\t--shared-lib-branch master \ \
-     \n\t--jenkins-host https://jenkins.myopenshift.com
    "
    printf "\n\tInstead of an empty space, you can also place a '=' in between the parameter and the argument such as --username=john_doe@bar.com\n"
    printf "\tTo learn more you can visit: https://www.opendevstack.org/ods-documentation"
@@ -94,9 +90,6 @@ while [[ "$#" -gt 0 ]]; do
    --bitbucket-url) BITBUCKET_URL="$2"; shift;;
    --bitbucket-url=*) BITBUCKET_URL="${1#*=}";;
 
-   --proxy-url) PROXY_URL="$2"; shift;;
-   --proxy-url=*) PROXY_URL="${1#*=}";;
-
    --quickstarter) QUICKSTARTER="$2"; shift;;
    --quickstarter=*) QUICKSTARTER="${1#*=}";;
 
@@ -108,9 +101,6 @@ while [[ "$#" -gt 0 ]]; do
 
    --shared-lib-branch) SHARED_LIB_BRANCH="$2"; shift;;
    --shared-lib-branch=*) SHARED_LIB_BRANCH="${1#*=}";;
-
-   --jenkins-host) JENKINS_HOST="$2"; shift;;
-   --jenkins-host=*) JENKINS_HOST="${1#*=}";;
 
    --quickstarter-repo) QUICKSTARTER_REPO="$2"; shift;;
    --quickstarter-repo=*) QUICKSTARTER_REPO="${1#*=}";;
@@ -126,8 +116,6 @@ elif [ -z ${USERNAME} ]; then
   echo_error "Param -u|--username is missing."; usage; exit 1;
 elif [ -z ${BITBUCKET_URL} ]; then
   echo_error "Param --bitbucket-url is missing."; usage; exit 1;
-elif [ -z ${PROXY_URL} ]; then
-  echo_error "Param --proxy-url is missing."; usage; exit 1;
 elif [ -z ${QUICKSTARTER} ]; then
   echo_error "Param --quickstarter is missing."; usage; exit 1;
 elif [ -z ${ODS_IMAGE_TAG} ]; then
@@ -136,8 +124,6 @@ elif [ -z ${QUICKSTARTER_BRANCH} ]; then
   echo_error "Param --quickstarter-branch is missing."; usage; exit 1;
 elif [ -z ${SHARED_LIB_BRANCH} ]; then
   echo_error "Param --shared-lib-branch is missing."; usage; exit 1;
-elif [ -z ${JENKINS_HOST} ]; then
-  echo_error "Param --jenkins-host is missing."; usage; exit 1;
 elif [ -z ${QUICKSTARTER_REPO} ]; then
   echo_info "Param --quickstarter-repo not defined, setting it to 'ods-quickstarters'"; QUICKSTARTER_REPO="ods-quickstarters";
 fi
@@ -154,6 +140,13 @@ echo "\n"
 echo_info "Selecting project to create the pipeline for..."
 OPENSHIFT_CD_PROJECT="$PROJECT_ID-cd"
 oc project $OPENSHIFT_CD_PROJECT
+
+#############
+##### Pull routes
+#############
+echo_info "Pulling routes of Jenkins and webhook proxy"
+JENKINS_HOST=$(oc get routes/jenkins -ojsonpath='{.spec.host}')
+PROXY_HOST=$(oc get routes/webhook-proxy -ojsonpath='{.spec.host}')
 
 #############
 ##### Pull the secret from secrets yaml, grep the output of the last word, decode it
@@ -183,7 +176,7 @@ curl --fail --location --request POST "$BITBUCKET_URL/rest/api/1.0/projects/$PRO
 #############
 echo "\n"
 echo_info "Generating webhook for the repo $COMPONENT_ID in $PROJECT_ID..."
-PROXY_URL_WITH_SECRET="$PROXY_URL?trigger_secret=$secret"
+PROXY_URL_WITH_SECRET="https://$PROXY_HOST?trigger_secret=$secret"
 curl --fail --location --request POST "$BITBUCKET_URL/rest/api/1.0/projects/$PROJECT_ID/repos/$PROJECT_ID-$COMPONENT_ID/webhooks" \
 --header "Authorization: Basic $token" \
 --header "Content-Type: application/json" \
@@ -227,5 +220,5 @@ oc process -f ./qs-pipeline.yml \
 #############
 PIPELINE_NAME="$OPENSHIFT_CD_PROJECT-ods-quickstarters-$QUICKSTARTER-$pipelinePostfix"
 oc start-build "ods-quickstarters-$QUICKSTARTER-$pipelinePostfix"
-echo_info "Running the build now. Please check the address below: \n$JENKINS_HOST/job/$OPENSHIFT_CD_PROJECT/job/$PIPELINE_NAME/1/console"
+echo_info "Running the build now. Please check the address below: \nhttps://$JENKINS_HOST/job/$OPENSHIFT_CD_PROJECT/job/$PIPELINE_NAME/1/console"
 echo_done
