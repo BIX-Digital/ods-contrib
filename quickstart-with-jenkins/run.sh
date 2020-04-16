@@ -38,6 +38,8 @@ QUICKSTARTER_BRANCH=
 SHARED_LIB_BRANCH=
 JENKINS_HOST=
 QUICKSTARTER_REPO=
+GROUP_ID=
+PACKAGE_NAME=
 
 function usage {
    printf "usage: %s [must include all options except for help]\n"
@@ -49,22 +51,23 @@ function usage {
    printf "\t--ods-image-tag\t\tODS image tag\n"
    printf "\t--quickstarter-branch\tQuickstarter branch you want to run the tests on\n"
    printf "\t--shared-lib-branch\tBranch of the shared library\n"
-   printf "\t--quickstarter-repo\t\t[optional, default: ods-quickstarters] Quickstarter repository name you want to run the tests on\n\n"
+   printf "\t--quickstarter-repo\t[optional, default: ods-quickstarters] Quickstarter repository name you want to run the tests on\n"
+   printf "\t--group-id\t\t[optional, default: org.opendevstack.<project-id>] Group for e.g. Java based projects\n"
+   printf "\t--package-name\t\t[optional, default: org.opendevstack.<project-id>.<component-id>] Package name for e.g. Java based projects\n\n"
    printf "\tNOTE: If you aren't interested in customizing a slave image tag or testing a specific quickstarter or shared library branch,
-   \tit is recommended that you use master for all three of them to get the latest stable releases.\n"
+   \tit is recommended that you use master for all three of them to get the latest version.\n"
    printf "\n\tExample:\n"
    printf "
-     \tsh $0 \ \
+     \t$0 \ \
      \n\t--username john_doe@bar.com \ \
      \n\t--project-id foo \ \
      \n\t--component-id bar \ \
      \n\t--quickstarter be-java-springboot \ \
      \n\t--ods-image-tag master \ \
      \n\t--quickstarter-branch master \ \
-     \n\t--shared-lib-branch master \ \
+     \n\t--shared-lib-branch master \n\n \
    "
-   printf "\n\tInstead of an empty space, you can also place a '=' in between the parameter and the argument such as --username=john_doe@bar.com\n"
-   printf "\tTo learn more you can visit: https://www.opendevstack.org/ods-documentation"
+   printf "\tTo learn more you can visit: https://www.opendevstack.org/ods-documentation/\n"
 }
 
 while [[ "$#" -gt 0 ]]; do
@@ -99,9 +102,18 @@ while [[ "$#" -gt 0 ]]; do
    --quickstarter-repo) QUICKSTARTER_REPO="$2"; shift;;
    --quickstarter-repo=*) QUICKSTARTER_REPO="${1#*=}";;
 
+   --group-id) GROUP_ID="$2"; shift;;
+   --group-id=*) GROUP_ID="${1#*=}";;
+
+   --package-name) PACKAGE_NAME="$2"; shift;;
+   --package-name=*) PACKAGE_NAME="${1#*=}";;
+
    *) echo_error "Unknown parameter passed: $1"; exit 1;;
 esac; shift; done
 
+#############
+##### Check required parameters
+#############
 if [ -z ${PROJECT_ID} ]; then
   echo_error "Param --project-id is missing."; usage; exit 1;
 elif [ -z ${COMPONENT_ID} ]; then
@@ -116,8 +128,19 @@ elif [ -z ${QUICKSTARTER_BRANCH} ]; then
   echo_error "Param --quickstarter-branch is missing."; usage; exit 1;
 elif [ -z ${SHARED_LIB_BRANCH} ]; then
   echo_error "Param --shared-lib-branch is missing."; usage; exit 1;
-elif [ -z ${QUICKSTARTER_REPO} ]; then
+fi
+
+#############
+##### Set optional parameters
+#############
+if [ -z ${QUICKSTARTER_REPO} ]; then
   echo_info "Param --quickstarter-repo not defined, setting it to 'ods-quickstarters'"; QUICKSTARTER_REPO="ods-quickstarters";
+fi
+if [ -z ${GROUP_ID} ]; then
+  echo_info "Param --group-id not defined, setting it to 'org.opendevstack.${PROJECT_ID}'"; GROUP_ID="org.opendevstack.${PROJECT_ID}";
+fi
+if [ -z ${PACKAGE_NAME} ]; then
+  echo_info "Param --package-name not defined, setting it to 'org.opendevstack.${PROJECT_ID}.${COMPONENT_ID}'"; PACKAGE_NAME="org.opendevstack.${PROJECT_ID}.${COMPONENT_ID}";
 fi
 
 #############
@@ -211,6 +234,8 @@ oc process -f ./qs-pipeline.yml \
   -p ODS_GIT_REF_QUICKSTARTER=$QUICKSTARTER_BRANCH \
   -p ODS_GIT_REF_SHARED_LIBRARY=$SHARED_LIB_BRANCH \
   -p QUICKSTARTER_REPO=$QUICKSTARTER_REPO \
+  -p GROUP_ID=$GROUP_ID \
+  -p PACKAGE_NAME=$PACKAGE_NAME \
   | oc create -n $OPENSHIFT_CD_PROJECT -f -
 
 #############

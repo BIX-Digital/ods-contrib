@@ -12,13 +12,17 @@ parameters:
 - name: PIPELINE_POSTFIX
   required: true
 - name: ODS_GIT_REF_SHARED_LIBRARY
-  value: production
+  required: true
 - name: ODS_GIT_REF_QUICKSTARTER
-  value: production
+  required: true
 - name: ODS_IMAGE_TAG
-  value: latest
+  required: true
 - name: QUICKSTARTER_REPO
-  value: ods-quickstarters
+  required: true
+- name: GROUP_ID
+  required: true
+- name: PACKAGE_NAME
+  required: true
 objects:
 - apiVersion: v1
   kind: BuildConfig
@@ -45,8 +49,10 @@ objects:
             value: ${PROJECT_ID}
           - name: COMPONENT_ID
             value: ${COMPONENT_ID}
+          - name: GROUP_ID
+            value: ${GROUP_ID}
           - name: PACKAGE_NAME
-            value: org.opendevstack.${COMPONENT_ID}
+            value: ${PACKAGE_NAME}
           - name: GIT_URL_HTTP
             value: ${BITBUCKET_URL}/scm/${PROJECT_ID}/${PROJECT_ID}-${COMPONENT_ID}.git
           - name: ODS_IMAGE_TAG
