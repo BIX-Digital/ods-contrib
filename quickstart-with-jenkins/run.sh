@@ -167,7 +167,7 @@ PROXY_HOST=$(oc get routes/webhook-proxy -ojsonpath='{.spec.host}')
 ##### Pull the secret from secrets yaml, grep the output of the last word, decode it
 #############
 echo_info "Pulling webhook trigger secret..."
-secret=$(oc get secrets -o=jsonpath='{.items[*].data.trigger-secret}' | base64 -D)
+secret=$(oc get secrets -o=jsonpath='{.items[*].data.trigger-secret}' | base64 --decode)
 
 echo_info "Generating Bitbucket token..."
 echo "Please enter your Bitbucket password:"
