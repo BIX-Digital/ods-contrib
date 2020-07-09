@@ -31,12 +31,12 @@ set -eu
 USERNAME=
 COMPONENT_ID=
 PROJECT_ID=
-PROXY_HOST=
+PROXY_URL=
 QUICKSTARTER=
 ODS_IMAGE_TAG=
 QUICKSTARTER_BRANCH=
 SHARED_LIB_BRANCH=
-JENKINS_HOST=
+JENKINS_URL=
 QUICKSTARTER_REPO=
 GROUP_ID=
 PACKAGE_NAME=
@@ -160,8 +160,10 @@ oc project $OPENSHIFT_CD_PROJECT
 ##### Pull routes
 #############
 echo_info "Pulling routes of Jenkins and webhook proxy"
-JENKINS_HOST=$(oc get routes/jenkins -ojsonpath='{.spec.host}')
-PROXY_HOST=$(oc get routes/webhook-proxy -ojsonpath='{.spec.host}')
+JENKINS_URL=$(oc get routes/jenkins --template 'http{{if .spec.tls}}s{{end}}://{{.spec.host}}')
+PROXY_URL=$(oc get routes/webhook-proxy --template 'http{{if .spec.tls}}s{{end}}://{{.spec.host}}')
+echo_info "Jenkins URL: ${JENKINS_URL}"
+echo_info "Webhook Proxy URL: ${PROXY_URL}"
 
 #############
 ##### Pull the secret from secrets yaml, grep the output of the last word, decode it
@@ -178,13 +180,14 @@ token=$(echo "$USERNAME:$PASSWORD" | base64)
 ##### Getting Bitbucket Host
 #############
 echo_info "Pulling your bitbucket host information"
-BITBUCKET_HOST=$(oc get dc -o=jsonpath='{.items[?(@.metadata.name=="jenkins")].spec.template.spec.containers[*].env[?(@.name=="BITBUCKET_HOST")].value}')
+BITBUCKET_URL=$(oc get dc -o=jsonpath='{.items[?(@.metadata.name=="jenkins")].spec.template.spec.containers[*].env[?(@.name=="BITBUCKET_URL")].value}')
+echo_info "Bitbucket URL: ${BITBUCKET_URL}"
 
 #############
 ##### Create Repo
 #############
 echo_info "Creating repo $COMPONENT_ID in $PROJECT_ID..."
-curl --fail --location --request POST "https://$BITBUCKET_HOST/rest/api/1.0/projects/$PROJECT_ID/repos" \
+curl --fail --location --request POST "$BITBUCKET_URL/rest/api/1.0/projects/$PROJECT_ID/repos" \
 --header "Authorization: Basic $token" \
 --header "Content-Type: application/json" \
 --data-raw '{
@@ -197,8 +200,8 @@ curl --fail --location --request POST "https://$BITBUCKET_HOST/rest/api/1.0/proj
 #############
 echo "\n"
 echo_info "Generating webhook for the repo $COMPONENT_ID in $PROJECT_ID..."
-PROXY_URL_WITH_SECRET="https://$PROXY_HOST?trigger_secret=$secret"
-curl --fail --location --request POST "https://$BITBUCKET_HOST/rest/api/1.0/projects/$PROJECT_ID/repos/$PROJECT_ID-$COMPONENT_ID/webhooks" \
+PROXY_URL_WITH_SECRET="$PROXY_URL?trigger_secret=$secret"
+curl --fail --location --request POST "$BITBUCKET_URL/rest/api/1.0/projects/$PROJECT_ID/repos/$PROJECT_ID-$COMPONENT_ID/webhooks" \
 --header "Authorization: Basic $token" \
 --header "Content-Type: application/json" \
 --data-raw '{
@@ -227,7 +230,7 @@ echo_info "Creating the Jenkins pipeline..."
 oc process -f ./qs-pipeline.yml \
   -p PROJECT_ID=$PROJECT_ID \
   -p COMPONENT_ID=$COMPONENT_ID \
-  -p BITBUCKET_URL="https://$BITBUCKET_HOST" \
+  -p BITBUCKET_URL=$BITBUCKET_URL \
   -p PIPELINE_POSTFIX=$pipelinePostfix \
   -p QUICKSTARTER=$QUICKSTARTER \
   -p ODS_IMAGE_TAG=$ODS_IMAGE_TAG \
@@ -243,5 +246,5 @@ oc process -f ./qs-pipeline.yml \
 #############
 PIPELINE_NAME="$OPENSHIFT_CD_PROJECT-ods-quickstarters-$QUICKSTARTER-$pipelinePostfix"
 oc start-build "ods-quickstarters-$QUICKSTARTER-$pipelinePostfix"
-echo_info "Running the build now. Please check the address below: \nhttps://$JENKINS_HOST/job/$OPENSHIFT_CD_PROJECT/job/$PIPELINE_NAME/1/console"
+echo_info "Running the build now. Please check the address below: \n$JENKINS_URL/job/$OPENSHIFT_CD_PROJECT/job/$PIPELINE_NAME/1/console"
 echo_done
