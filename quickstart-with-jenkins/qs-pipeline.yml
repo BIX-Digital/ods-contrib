@@ -25,6 +25,8 @@ parameters:
   required: true
 - name: ODS_NAMESPACE
   required: true
+- name: ODS_BB_PROJECT
+  required: true
 objects:
 - apiVersion: v1
   kind: BuildConfig
@@ -40,7 +42,7 @@ objects:
     source:
       git:
         ref: ${ODS_GIT_REF_QUICKSTARTER}
-        uri: ${BITBUCKET_URL}/scm/opendevstack/${QUICKSTARTER_REPO}.git
+        uri: ${BITBUCKET_URL}/scm/${ODS_BB_PROJECT}/${QUICKSTARTER_REPO}.git
       sourceSecret:
         name: cd-user-with-password
       type: Git

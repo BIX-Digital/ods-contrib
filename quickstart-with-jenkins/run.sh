@@ -39,6 +39,7 @@ SHARED_LIB_BRANCH=
 JENKINS_URL=
 QUICKSTARTER_REPO=
 ODS_NAMESPACE=
+ODS_BB_PROJECT=
 GROUP_ID=
 PACKAGE_NAME=
 
@@ -54,6 +55,7 @@ function usage {
    printf "\t--shared-lib-branch\tBranch of the shared library\n"
    printf "\t--quickstarter-repo\t[optional, default: ods-quickstarters] Quickstarter repository name you want to run the tests on\n"
    printf "\t--ods-namespace\t[optional, default: ods] Openshift project where your ODS installation is located\n"
+   printf "\t--ods-bitbucket-project\t[optional, default: opendevstack] Location of your OpenDevStack project fork in your Bitbucket server\n"
    printf "\t--group-id\t\t[optional, default: org.opendevstack.<project-id>] Group for e.g. Java based projects\n"
    printf "\t--package-name\t\t[optional, default: org.opendevstack.<project-id>.<component-id>] Package name for e.g. Java based projects\n\n"
    printf "\tNOTE: If you aren't interested in customizing a slave image tag or testing a specific quickstarter or shared library branch,
@@ -107,6 +109,9 @@ while [[ "$#" -gt 0 ]]; do
    --ods-namespace) ODS_NAMESPACE="$2"; shift;;
    --ods-namespace=*) ODS_NAMESPACE="${1#*=}";;
 
+   --ods-bitbucket-project) ODS_BB_PROJECT="$2"; shift;;
+   --ods-bitbucket-project=*) ODS_BB_PROJECT="${1#*=}";;
+
    --group-id) GROUP_ID="$2"; shift;;
    --group-id=*) GROUP_ID="${1#*=}";;
 
@@ -143,6 +148,9 @@ if [ -z ${QUICKSTARTER_REPO} ]; then
 fi
 if [ -z ${ODS_NAMESPACE} ]; then
   echo_info "Param --ods-namespace not defined, setting it to 'ods'"; ODS_NAMESPACE="ods";
+fi
+if [ -z ${ODS_BB_PROJECT} ]; then
+  echo_info "Param --ods-bitbucket-project not defined, setting it to 'opendevstack'"; ODS_BB_PROJECT="opendevstack";
 fi
 if [ -z ${GROUP_ID} ]; then
   echo_info "Param --group-id not defined, setting it to 'org.opendevstack.${PROJECT_ID}'"; GROUP_ID="org.opendevstack.${PROJECT_ID}";
@@ -246,6 +254,7 @@ oc process -f ./qs-pipeline.yml \
   -p ODS_GIT_REF_SHARED_LIBRARY=$SHARED_LIB_BRANCH \
   -p QUICKSTARTER_REPO=$QUICKSTARTER_REPO \
   -p ODS_NAMESPACE=$ODS_NAMESPACE \
+  -p ODS_BB_PROJECT=$ODS_BB_PROJECT \
   -p GROUP_ID=$GROUP_ID \
   -p PACKAGE_NAME=$PACKAGE_NAME \
   | oc create -n $OPENSHIFT_CD_PROJECT -f -
