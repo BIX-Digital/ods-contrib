@@ -23,6 +23,8 @@ parameters:
   required: true
 - name: PACKAGE_NAME
   required: true
+- name: ODS_NAMESPACE
+  required: true
 objects:
 - apiVersion: v1
   kind: BuildConfig
@@ -59,6 +61,8 @@ objects:
             value: ${ODS_IMAGE_TAG}
           - name: ODS_GIT_REF
             value: ${ODS_GIT_REF_SHARED_LIBRARY}
+          - name: ODS_NAMESPACE
+            value: ${ODS_NAMESPACE}
         jenkinsfilePath: ${QUICKSTARTER}/Jenkinsfile
       type: JenkinsPipeline
     triggers: []
