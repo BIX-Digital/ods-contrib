@@ -33,9 +33,9 @@ COMPONENT_ID=
 PROJECT_ID=
 PROXY_URL=
 QUICKSTARTER=
-ODS_IMAGE_TAG=
-QUICKSTARTER_BRANCH=
-SHARED_LIB_BRANCH=
+AGENT_IMAGE_TAG=
+QUICKSTARTER_REF=
+SHARED_LIBRARY_REF=
 JENKINS_URL=
 QUICKSTARTER_REPO=
 ODS_NAMESPACE=
@@ -44,34 +44,33 @@ GROUP_ID=
 PACKAGE_NAME=
 
 function usage {
-   printf "usage: %s [must include all options except for help]\n"
-   printf "\t-h|--help\t\tPrints the usage\n"
-   printf "\t--project-id\t\tProject ID of the Bitbucket Project\n"
-   printf "\t--component-id\t\tComponent ID of the project, usually is equivalent to bitbucket repo name\n"
-   printf "\t--username\t\tUsername of your Bitbucket account\n"
-   printf "\t--quickstarter\t\tQuickstarter of interest\n"
-   printf "\t--ods-image-tag\t\tODS image tag\n"
-   printf "\t--quickstarter-branch\tQuickstarter branch you want to run the tests on\n"
-   printf "\t--shared-lib-branch\tBranch of the shared library\n"
-   printf "\t--quickstarter-repo\t[optional, default: ods-quickstarters] Quickstarter repository name you want to run the tests on\n"
-   printf "\t--ods-namespace\t[optional, default: ods] Openshift project where your ODS installation is located\n"
-   printf "\t--ods-bitbucket-project\t[optional, default: opendevstack] Location of your OpenDevStack project fork in your Bitbucket server\n"
-   printf "\t--group-id\t\t[optional, default: org.opendevstack.<project-id>] Group for e.g. Java based projects\n"
-   printf "\t--package-name\t\t[optional, default: org.opendevstack.<project-id>.<component-id>] Package name for e.g. Java based projects\n\n"
-   printf "\tNOTE: If you aren't interested in customizing a slave image tag or testing a specific quickstarter or shared library branch,
-   \tit is recommended that you use master for all three of them to get the latest version.\n"
-   printf "\n\tExample:\n"
-   printf "
-     \t$0 \ \
-     \n\t--username john_doe@bar.com \ \
-     \n\t--project-id foo \ \
-     \n\t--component-id bar \ \
-     \n\t--quickstarter be-java-springboot \ \
-     \n\t--ods-image-tag master \ \
-     \n\t--quickstarter-branch master \ \
-     \n\t--shared-lib-branch master \n\n \
-   "
-   printf "\tTo learn more you can visit: https://www.opendevstack.org/ods-documentation/\n"
+    printf "Usage:\n"
+    printf "\t-h|--help\t\tPrints the usage\n"
+    printf "\t--project-id\t\tProject ID of the Bitbucket Project\n"
+    printf "\t--component-id\t\tComponent ID of the project, usually is equivalent to bitbucket repo name\n"
+    printf "\t--username\t\tUsername of your Bitbucket account\n"
+    printf "\t--quickstarter\t\tQuickstarter of interest\n"
+    printf "\t--agent-image-tag\t\tJenkins agent image tag\n"
+    printf "\t--quickstarter-git-ref\tGit ref of quickstarter repository to use\n"
+    printf "\t--shared-library-git-ref\tGit ref of shared library repository to use\n"
+    printf "\t--quickstarter-repo\t[optional, default: ods-quickstarters] Quickstarter repository name you want to run the tests on\n"
+    printf "\t--ods-namespace\t[optional, default: ods] Openshift project where your ODS installation is located\n"
+    printf "\t--ods-bitbucket-project\t[optional, default: opendevstack] Location of your OpenDevStack project fork in your Bitbucket server\n"
+    printf "\t--group-id\t\t[optional, default: org.opendevstack.<project-id>] Group for e.g. Java based projects\n"
+    printf "\t--package-name\t\t[optional, default: org.opendevstack.<project-id>.<component-id>] Package name for e.g. Java based projects\n\n"
+    printf "NOTE: If you aren't interested in customizing a slave image tag or testing a specific quickstarter or shared library branch,
+    \tit is recommended that you use master for all three of them to get the latest version.\n"
+    printf "\nExample:\n\n"
+    printf "\t%s \ \
+      \n\t\t--username john_doe@bar.com \ \
+      \n\t\t--project-id foo \ \
+      \n\t\t--component-id bar \ \
+      \n\t\t--quickstarter be-java-springboot \ \
+      \n\t\t--agent-image-tag latest \ \
+      \n\t\t--quickstarter-git-ref master \ \
+      \n\t\t--shared-library-git-ref master \n\n \
+    " "$0"
+    printf "To learn more you can visit: https://www.opendevstack.org/ods-documentation/\n"
 }
 
 while [[ "$#" -gt 0 ]]; do
@@ -94,14 +93,14 @@ while [[ "$#" -gt 0 ]]; do
    --quickstarter) QUICKSTARTER="$2"; shift;;
    --quickstarter=*) QUICKSTARTER="${1#*=}";;
 
-   --ods-image-tag) ODS_IMAGE_TAG="$2"; shift;;
-   --ods-image-tag=*) ODS_IMAGE_TAG="${1#*=}";;
+   --agent-image-tag) AGENT_IMAGE_TAG="$2"; shift;;
+   --agent-image-tag=*) AGENT_IMAGE_TAG="${1#*=}";;
 
-   --quickstarter-branch) QUICKSTARTER_BRANCH="$2"; shift;;
-   --quickstarter-branch=*) QUICKSTARTER_BRANCH="${1#*=}";;
+   --quickstarter-git-ref) QUICKSTARTER_REF="$2"; shift;;
+   --quickstarter-git-ref=*) QUICKSTARTER_REF="${1#*=}";;
 
-   --shared-lib-branch) SHARED_LIB_BRANCH="$2"; shift;;
-   --shared-lib-branch=*) SHARED_LIB_BRANCH="${1#*=}";;
+   --shared-library-git-ref) SHARED_LIBRARY_REF="$2"; shift;;
+   --shared-library-git-ref=*) SHARED_LIBRARY_REF="${1#*=}";;
 
    --quickstarter-repo) QUICKSTARTER_REPO="$2"; shift;;
    --quickstarter-repo=*) QUICKSTARTER_REPO="${1#*=}";;
@@ -132,12 +131,12 @@ elif [ -z ${USERNAME} ]; then
   echo_error "Param -u|--username is missing."; usage; exit 1;
 elif [ -z ${QUICKSTARTER} ]; then
   echo_error "Param --quickstarter is missing."; usage; exit 1;
-elif [ -z ${ODS_IMAGE_TAG} ]; then
-  echo_error "Param --ods-image-tag is missing."; usage; exit 1;
-elif [ -z ${QUICKSTARTER_BRANCH} ]; then
-  echo_error "Param --quickstarter-branch is missing."; usage; exit 1;
-elif [ -z ${SHARED_LIB_BRANCH} ]; then
-  echo_error "Param --shared-lib-branch is missing."; usage; exit 1;
+elif [ -z ${AGENT_IMAGE_TAG} ]; then
+  echo_error "Param --agent-image-tag is missing."; usage; exit 1;
+elif [ -z ${QUICKSTARTER_REF} ]; then
+  echo_error "Param --quickstarter-git-ref is missing."; usage; exit 1;
+elif [ -z ${SHARED_LIBRARY_REF} ]; then
+  echo_error "Param --shared-library-git-ref is missing."; usage; exit 1;
 fi
 
 #############
@@ -253,9 +252,9 @@ oc process -f ./qs-pipeline.yml \
   -p BITBUCKET_URL=$BITBUCKET_URL \
   -p PIPELINE_POSTFIX=$pipelinePostfix \
   -p QUICKSTARTER=$QUICKSTARTER \
-  -p ODS_IMAGE_TAG=$ODS_IMAGE_TAG \
-  -p ODS_GIT_REF_QUICKSTARTER=$QUICKSTARTER_BRANCH \
-  -p ODS_GIT_REF_SHARED_LIBRARY=$SHARED_LIB_BRANCH \
+  -p AGENT_IMAGE_TAG=$AGENT_IMAGE_TAG \
+  -p QUICKSTARTER_REF=$QUICKSTARTER_REF \
+  -p SHARED_LIBRARY_REF=$SHARED_LIBRARY_REF \
   -p QUICKSTARTER_REPO=$QUICKSTARTER_REPO \
   -p ODS_NAMESPACE=$ODS_NAMESPACE \
   -p ODS_BB_PROJECT=$ODS_BB_PROJECT \
