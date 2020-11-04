@@ -45,21 +45,19 @@ PACKAGE_NAME=
 
 function usage {
     printf "Usage:\n"
-    printf "\t-h|--help\t\tPrints the usage\n"
-    printf "\t--project-id\t\tProject ID of the Bitbucket Project\n"
-    printf "\t--component-id\t\tComponent ID of the project, usually is equivalent to bitbucket repo name\n"
-    printf "\t--username\t\tUsername of your Bitbucket account\n"
-    printf "\t--quickstarter\t\tQuickstarter of interest\n"
-    printf "\t--agent-image-tag\t\tJenkins agent image tag\n"
-    printf "\t--quickstarter-git-ref\tGit ref of quickstarter repository to use\n"
-    printf "\t--shared-library-git-ref\tGit ref of shared library repository to use\n"
-    printf "\t--quickstarter-repo\t[optional, default: ods-quickstarters] Quickstarter repository name you want to run the tests on\n"
-    printf "\t--ods-namespace\t[optional, default: ods] Openshift project where your ODS installation is located\n"
-    printf "\t--ods-bitbucket-project\t[optional, default: opendevstack] Location of your OpenDevStack project fork in your Bitbucket server\n"
-    printf "\t--group-id\t\t[optional, default: org.opendevstack.<project-id>] Group for e.g. Java based projects\n"
-    printf "\t--package-name\t\t[optional, default: org.opendevstack.<project-id>.<component-id>] Package name for e.g. Java based projects\n\n"
-    printf "NOTE: If you aren't interested in customizing a slave image tag or testing a specific quickstarter or shared library branch,
-    \tit is recommended that you use master for all three of them to get the latest version.\n"
+    printf "\t--help|-h\t\t\tPrints the usage\n"
+    printf "\t--project-id\t\t\tProject ID of the Bitbucket Project\n"
+    printf "\t--component-id\t\t\tComponent ID of the project, usually is equivalent to bitbucket repo name\n"
+    printf "\t--username\t\t\tUsername of your Bitbucket account\n"
+    printf "\t--quickstarter\t\t\tQuickstarter of interest\n"
+    printf "\t--agent-image-tag\t\t[optional, default: latest] Jenkins agent image tag\n"
+    printf "\t--quickstarter-git-ref\t\t[optional, default: master] Git ref of quickstarter repository to use\n"
+    printf "\t--shared-library-git-ref\t[optional, default: master] Git ref of shared library repository to use\n"
+    printf "\t--quickstarter-repo\t\t[optional, default: ods-quickstarters] Quickstarter repository name you want to run the tests on\n"
+    printf "\t--ods-namespace\t\t\t[optional, default: ods] Openshift project where your ODS installation is located\n"
+    printf "\t--ods-bitbucket-project\t\t[optional, default: opendevstack] Location of your OpenDevStack project fork in your Bitbucket server\n"
+    printf "\t--group-id\t\t\t[optional, default: org.opendevstack.<project-id>] Group for e.g. Java based projects\n"
+    printf "\t--package-name\t\t\t[optional, default: org.opendevstack.<project-id>.<component-id>] Package name for e.g. Java based projects\n\n"
     printf "\nExample:\n\n"
     printf "\t%s \ \
       \n\t\t--username john_doe@bar.com \ \
@@ -68,8 +66,7 @@ function usage {
       \n\t\t--quickstarter be-java-springboot \ \
       \n\t\t--agent-image-tag latest \ \
       \n\t\t--quickstarter-git-ref master \ \
-      \n\t\t--shared-library-git-ref master \n\n \
-    " "$0"
+      \n\t\t--shared-library-git-ref master \n\n" "$0"
     printf "To learn more you can visit: https://www.opendevstack.org/ods-documentation/\n"
 }
 
@@ -131,12 +128,6 @@ elif [ -z ${USERNAME} ]; then
   echo_error "Param -u|--username is missing."; usage; exit 1;
 elif [ -z ${QUICKSTARTER} ]; then
   echo_error "Param --quickstarter is missing."; usage; exit 1;
-elif [ -z ${AGENT_IMAGE_TAG} ]; then
-  echo_error "Param --agent-image-tag is missing."; usage; exit 1;
-elif [ -z ${QUICKSTARTER_REF} ]; then
-  echo_error "Param --quickstarter-git-ref is missing."; usage; exit 1;
-elif [ -z ${SHARED_LIBRARY_REF} ]; then
-  echo_error "Param --shared-library-git-ref is missing."; usage; exit 1;
 fi
 
 #############
@@ -150,6 +141,15 @@ if [ -z ${ODS_NAMESPACE} ]; then
 fi
 if [ -z ${ODS_BB_PROJECT} ]; then
   echo_info "Param --ods-bitbucket-project not defined, setting it to 'opendevstack'"; ODS_BB_PROJECT="opendevstack";
+fi
+if [ -z ${AGENT_IMAGE_TAG} ]; then
+  echo_info "Param --agent-image-tag not defined, setting it to 'latest'"; AGENT_IMAGE_TAG="latest";
+fi
+if [ -z ${QUICKSTARTER_REF} ]; then
+  echo_info "Param --quickstarter-git-ref not defined, setting it to 'master'"; QUICKSTARTER_REF="master";
+fi
+if [ -z ${SHARED_LIBRARY_REF} ]; then
+  echo_info "Param --shared-library-git-ref not defined, setting it to 'master'"; SHARED_LIBRARY_REF="master";
 fi
 if [ -z ${GROUP_ID} ]; then
   echo_info "Param --group-id not defined, setting it to 'org.opendevstack.${PROJECT_ID}'"; GROUP_ID="org.opendevstack.${PROJECT_ID}";
