@@ -190,7 +190,7 @@ secret=$(oc get secrets -o=jsonpath='{.items[*].data.trigger-secret}' | base64 -
 echo_info "Generating Bitbucket token..."
 echo "Please enter your Bitbucket password:"
 read -s PASSWORD
-if [ "$OSTYPE" == "linux-gnu" ]; then
+if [ "$OSTYPE" == "linux-gnu" ] || [ "$OSTYPE" == "msys" ]; then
   token=$(echo "$USERNAME:$PASSWORD" | base64 -w0)
 else
   token=$(echo "$USERNAME:$PASSWORD" | base64)
