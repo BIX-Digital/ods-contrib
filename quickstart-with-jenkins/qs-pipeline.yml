@@ -11,11 +11,11 @@ parameters:
   required: true
 - name: PIPELINE_POSTFIX
   required: true
-- name: ODS_GIT_REF_SHARED_LIBRARY
+- name: SHARED_LIBRARY_REF
   required: true
-- name: ODS_GIT_REF_QUICKSTARTER
+- name: QUICKSTARTER_REF
   required: true
-- name: ODS_IMAGE_TAG
+- name: AGENT_IMAGE_TAG
   required: true
 - name: QUICKSTARTER_REPO
   required: true
@@ -41,7 +41,7 @@ objects:
     runPolicy: Serial
     source:
       git:
-        ref: ${ODS_GIT_REF_QUICKSTARTER}
+        ref: ${QUICKSTARTER_REF}
         uri: ${BITBUCKET_URL}/scm/${ODS_BB_PROJECT}/${QUICKSTARTER_REPO}.git
       sourceSecret:
         name: cd-user-with-password
@@ -59,10 +59,10 @@ objects:
             value: ${PACKAGE_NAME}
           - name: GIT_URL_HTTP
             value: ${BITBUCKET_URL}/scm/${PROJECT_ID}/${PROJECT_ID}-${COMPONENT_ID}.git
-          - name: ODS_IMAGE_TAG
-            value: ${ODS_IMAGE_TAG}
-          - name: ODS_GIT_REF
-            value: ${ODS_GIT_REF_SHARED_LIBRARY}
+          - name: AGENT_IMAGE_TAG
+            value: ${AGENT_IMAGE_TAG}
+          - name: SHARED_LIBRARY_REF
+            value: ${SHARED_LIBRARY_REF}
           - name: ODS_NAMESPACE
             value: ${ODS_NAMESPACE}
         jenkinsfilePath: ${QUICKSTARTER}/Jenkinsfile
