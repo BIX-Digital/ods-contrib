@@ -1,7 +1,7 @@
 @echo off
 ::=========================================================================
 :: Starts an SSM session to a given instance-id and forwards RDP port 3389
-:: to localhost.
+:: to localhost@localPort.
 ::
 :: Usage:
 :: Enter an Instance-ID below and start the script inside a cmd.exe session
