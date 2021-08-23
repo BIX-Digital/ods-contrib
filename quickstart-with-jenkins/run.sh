@@ -28,7 +28,6 @@ echo_info(){
 
 set -eu
 
-USERNAME=
 COMPONENT_ID=
 PROJECT_ID=
 PROXY_URL=
@@ -48,7 +47,6 @@ function usage {
     printf "\t--help|-h\t\t\tPrints the usage\n"
     printf "\t--project-id\t\t\tProject ID of the Bitbucket Project\n"
     printf "\t--component-id\t\t\tComponent ID of the project, usually is equivalent to bitbucket repo name\n"
-    printf "\t--username\t\t\tUsername of your Bitbucket account\n"
     printf "\t--quickstarter\t\t\tQuickstarter of interest\n"
     printf "\t--agent-image-tag\t\t[optional, default: latest] Jenkins agent image tag\n"
     printf "\t--quickstarter-git-ref\t\t[optional, default: master] Git ref of quickstarter repository to use\n"
@@ -60,7 +58,6 @@ function usage {
     printf "\t--package-name\t\t\t[optional, default: org.opendevstack.<project-id>.<component-id>] Package name for e.g. Java based projects\n\n"
     printf "\nExample:\n\n"
     printf "\t%s \ \
-      \n\t\t--username john_doe@bar.com \ \
       \n\t\t--project-id foo \ \
       \n\t\t--component-id bar \ \
       \n\t\t--quickstarter be-java-springboot \ \
@@ -83,9 +80,6 @@ while [[ "$#" -gt 0 ]]; do
 
    --component-id) COMPONENT_ID="$2"; shift;;
    --component-id=*) COMPONENT_ID="${1#*=}";;
-
-   --username) USERNAME="$2"; shift;;
-   --username=*) USERNAME="${1#*=}";;
 
    --quickstarter) QUICKSTARTER="$2"; shift;;
    --quickstarter=*) QUICKSTARTER="${1#*=}";;
@@ -124,8 +118,6 @@ if [ -z ${PROJECT_ID} ]; then
   echo_error "Param --project-id is missing."; usage; exit 1;
 elif [ -z ${COMPONENT_ID} ]; then
   echo_error "Param --component-id is missing."; usage; exit 1;
-elif [ -z ${USERNAME} ]; then
-  echo_error "Param -u|--username is missing."; usage; exit 1;
 elif [ -z ${QUICKSTARTER} ]; then
   echo_error "Param --quickstarter is missing."; usage; exit 1;
 fi
@@ -186,14 +178,8 @@ echo_info "Webhook Proxy URL: ${PROXY_URL}"
 echo_info "Pulling webhook trigger secret..."
 secret=$(oc get secrets -o=jsonpath='{.items[*].data.trigger-secret}' | base64 --decode)
 
-echo_info "Generating Bitbucket token..."
-echo "Please enter your Bitbucket password:"
-read -s PASSWORD
-if [ "$OSTYPE" == "linux-gnu" ] || [ "$OSTYPE" == "msys" ]; then
-  token=$(echo "$USERNAME:$PASSWORD" | base64 -w0)
-else
-  token=$(echo "$USERNAME:$PASSWORD" | base64)
-fi
+echo "Please enter your Bitbucket token with project admin permission:"
+read -s BITBUCKET_TOKEN
 
 #############
 ##### Getting Bitbucket Host
@@ -207,7 +193,7 @@ echo_info "Bitbucket URL: ${BITBUCKET_URL}"
 #############
 echo_info "Creating repo $COMPONENT_ID in $PROJECT_ID..."
 curl --fail --location --request POST "$BITBUCKET_URL/rest/api/1.0/projects/$PROJECT_ID/repos" \
---header "Authorization: Basic $token" \
+--header "Authorization: Bearer $BITBUCKET_TOKEN" \
 --header "Content-Type: application/json" \
 --data-raw '{
     "name": "'"$PROJECT_ID-$COMPONENT_ID"'"
@@ -221,7 +207,7 @@ echo "\n"
 echo_info "Generating webhook for the repo $COMPONENT_ID in $PROJECT_ID..."
 PROXY_URL_WITH_SECRET="$PROXY_URL?trigger_secret=$secret"
 curl --fail --location --request POST "$BITBUCKET_URL/rest/api/1.0/projects/$PROJECT_ID/repos/$PROJECT_ID-$COMPONENT_ID/webhooks" \
---header "Authorization: Basic $token" \
+--header "Authorization: Bearer $BITBUCKET_TOKEN" \
 --header "Content-Type: application/json" \
 --data-raw '{
     "name": "Jenkins",
