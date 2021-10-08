@@ -55,7 +55,8 @@ function usage {
     printf "\t--ods-namespace\t\t\t[optional, default: ods] Openshift project where your ODS installation is located\n"
     printf "\t--ods-bitbucket-project\t\t[optional, default: opendevstack] Location of your OpenDevStack project fork in your Bitbucket server\n"
     printf "\t--group-id\t\t\t[optional, default: org.opendevstack.<project-id>] Group for e.g. Java based projects\n"
-    printf "\t--package-name\t\t\t[optional, default: org.opendevstack.<project-id>.<component-id>] Package name for e.g. Java based projects\n\n"
+    printf "\t--package-name\t\t\t[optional, default: org.opendevstack.<project-id>.<component-id>] Package name for e.g. Java based projects\n"
+    printf "\t--bitbucket-repo-name\t\t[optional, default: <project-id>-<component-id>] Bitbucket repository name to be used\n\n"
     printf "\nExample:\n\n"
     printf "\t%s \ \
       \n\t\t--project-id foo \ \
@@ -108,6 +109,9 @@ while [[ "$#" -gt 0 ]]; do
    --package-name) PACKAGE_NAME="$2"; shift;;
    --package-name=*) PACKAGE_NAME="${1#*=}";;
 
+   --bitbucket-repo-name) BITBUCKET_REPO_NAME="$2"; shift;;
+   --bitbucket-repo-name=*) BITBUCKET_REPO_NAME="${1#*=}";;
+
    *) echo_error "Unknown parameter passed: $1"; exit 1;;
 esac; shift; done
 
@@ -148,6 +152,9 @@ if [ -z ${GROUP_ID} ]; then
 fi
 if [ -z ${PACKAGE_NAME} ]; then
   echo_info "Param --package-name not defined, setting it to 'org.opendevstack.${PROJECT_ID}.${COMPONENT_ID}'"; PACKAGE_NAME="org.opendevstack.${PROJECT_ID}.${COMPONENT_ID}";
+fi
+if [ -z ${BITBUCKET_REPO_NAME} ]; then
+  echo_info "Param --bitbucket-repo-name not defined, setting it to '${PROJECT_ID}-${COMPONENT_ID}'"; BITBUCKET_REPO_NAME="${PROJECT_ID}-${COMPONENT_ID}";
 fi
 
 #############
@@ -191,12 +198,12 @@ echo_info "Bitbucket URL: ${BITBUCKET_URL}"
 #############
 ##### Create Repo
 #############
-echo_info "Creating repo $COMPONENT_ID in $PROJECT_ID..."
+echo_info "Creating repo $BITBUCKET_REPO_NAME in $PROJECT_ID..."
 curl --fail --location --request POST "$BITBUCKET_URL/rest/api/1.0/projects/$PROJECT_ID/repos" \
 --header "Authorization: Bearer $BITBUCKET_TOKEN" \
 --header "Content-Type: application/json" \
 --data-raw '{
-    "name": "'"$PROJECT_ID-$COMPONENT_ID"'"
+    "name": "'"$BITBUCKET_REPO_NAME"'"
 }
 '
 
@@ -204,9 +211,9 @@ curl --fail --location --request POST "$BITBUCKET_URL/rest/api/1.0/projects/$PRO
 ##### Create Webhook
 #############
 echo "\n"
-echo_info "Generating webhook for the repo $COMPONENT_ID in $PROJECT_ID..."
+echo_info "Generating webhook for the repo $BITBUCKET_REPO_NAME in $PROJECT_ID..."
 PROXY_URL_WITH_SECRET="$PROXY_URL?trigger_secret=$secret"
-curl --fail --location --request POST "$BITBUCKET_URL/rest/api/1.0/projects/$PROJECT_ID/repos/$PROJECT_ID-$COMPONENT_ID/webhooks" \
+curl --fail --location --request POST "$BITBUCKET_URL/rest/api/1.0/projects/$PROJECT_ID/repos/$BITBUCKET_REPO_NAME/webhooks" \
 --header "Authorization: Bearer $BITBUCKET_TOKEN" \
 --header "Content-Type: application/json" \
 --data-raw '{
@@ -246,6 +253,7 @@ oc process -f ./qs-pipeline.yml \
   -p ODS_BB_PROJECT=$ODS_BB_PROJECT \
   -p GROUP_ID=$GROUP_ID \
   -p PACKAGE_NAME=$PACKAGE_NAME \
+  -p BITBUCKET_REPO_NAME=$BITBUCKET_REPO_NAME \
   | oc create -n $OPENSHIFT_CD_PROJECT -f -
 
 #############
