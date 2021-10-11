@@ -27,6 +27,8 @@ parameters:
   required: true
 - name: ODS_BB_PROJECT
   required: true
+- name: BITBUCKET_REPO_NAME
+  required: true
 objects:
 - apiVersion: v1
   kind: BuildConfig
@@ -58,7 +60,7 @@ objects:
           - name: PACKAGE_NAME
             value: ${PACKAGE_NAME}
           - name: GIT_URL_HTTP
-            value: ${BITBUCKET_URL}/scm/${PROJECT_ID}/${PROJECT_ID}-${COMPONENT_ID}.git
+            value: ${BITBUCKET_URL}/scm/${PROJECT_ID}/${BITBUCKET_REPO_NAME}.git
           - name: AGENT_IMAGE_TAG
             value: ${AGENT_IMAGE_TAG}
           - name: SHARED_LIBRARY_REF
